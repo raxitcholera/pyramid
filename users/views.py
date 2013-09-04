@@ -29,7 +29,7 @@ from pyramid.security import (
     authenticated_userid,
     )
 
-@view_config(route_name='list', renderer='list.mako')
+@view_config(route_name='list', renderer='list.mako',permission='edit')
 def list_view(request):
     try:
         users = DBSession.query(Users).all()
