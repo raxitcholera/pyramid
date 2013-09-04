@@ -35,6 +35,6 @@ def main(argv=sys.argv):
     Base.metadata.create_all(engine)
     with transaction.manager:
         model = MyModel(name='one', value=1)
-        user = Users(name='Raxit',password='Test_Raxit',group="admin")
+        user = Users(name='Raxit',password='Test_Raxit',group="editor")
         DBSession.add(model)
         DBSession.add(user)

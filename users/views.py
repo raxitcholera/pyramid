@@ -42,7 +42,7 @@ def list_view(request):
 def new_view(request):
     if request.method == 'POST':
         if request.POST.get('UserName') and request.POST.get('Password'):
-            newUserObj = Users(name=request.POST.get('UserName'),password=request.POST.get('Password'),group='user')
+            newUserObj = Users(name=request.POST.get('UserName'),password=request.POST.get('Password'),group='viewer')
             
             DBSession.add(newUserObj)
 
