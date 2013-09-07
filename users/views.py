@@ -29,13 +29,14 @@ from pyramid.security import (
     authenticated_userid,
     )
 
-@view_config(route_name='list', renderer='list.mako',permission='edit')
+
+@view_config(route_name='list', renderer='list.mako',permission='view')
 def list_view(request):
     try:
         users = DBSession.query(Users).all()
     except DBAPIError:
         return Response(conn_err_msg, content_type='text/plain', status_int=500)
-    return {'users': users, 'project': 'users','logged_in':authenticated_userid(request)}
+    return {'users': users, 'project': 'users'}
 
 
 @view_config(route_name='new', renderer='new.mako',permission='edit')
@@ -61,10 +62,12 @@ def login_view(request):
             usr=DBSession.query(Users).filter_by(name=request.POST['UserName'],password=request.POST['Password']).first()
             if usr:
                 request.session.flash('Welcome!')
-                headers = remember(request, request.params['UserName'])
+
+                headers = remember(request,usr.group)
                 response = Response()
+                #   response.userid=usr
                 #response.set_cookie('user', value = request,POST.get('UserName') , max_age = 30)
-                return HTTPFound(location=request.route_url('list'))
+                return HTTPFound(location=request.route_url('list'),headers=headers)
             else:
                 request.session.flash('Please enter a valid User Name or Password!')
                 return HTTPFound(location=request.route_url('login'))
@@ -72,35 +75,6 @@ def login_view(request):
             request.session.flash('Please enter a User Name or Password!')
             return HTTPFound(location=request.route_url('login'))
     return {}
-'''
-@view_config(route_name='login', renderer='templates/login.pt')
-@forbidden_view_config(renderer='templates/login.pt')
-def login(request):
-    login_url = request.route_url('login')
-    referrer = request.url
-    if referrer == login_url:
-        referrer = '/' # never use the login form itself as came_from
-    came_from = request.params.get('came_from', referrer)
-    message = ''
-    login = ''
-    password = ''
-    if 'form.submitted' in request.params:
-        login = request.params['login']
-        password = request.params['password']
-        if USERS.get(login) == password:
-            headers = remember(request, login)
-            return HTTPFound(location = came_from,
-                             headers = headers)
-        message = 'Failed login'
-
-    return dict(
-        message = message,
-        url = request.application_url + '/login',
-        came_from = came_from,
-        login = login,
-        password = password,
-        )
-'''
 
 @view_config(context='pyramid.exceptions.NotFound', renderer='notfound.mako')
 def notfound_view(request):
@@ -112,8 +86,7 @@ def logout(request):
     headers = forget(request)
     return HTTPFound(location = request.route_url('login'),
                      headers = headers)
-    
-
+ 
 @view_config(route_name='home', renderer='templates/mytemplate.pt')
 def my_view(request):
     try:
