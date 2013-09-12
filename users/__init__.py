@@ -13,6 +13,7 @@ from .models import (
     )
 
 
+
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
@@ -32,5 +33,6 @@ def main(global_config, **settings):
     config.add_route('logout','/logout')
     config.add_route('list', '/list')
     config.add_route('new', '/new')
+    config.add_route('cooky_check', '/cooky_check')
     config.scan()
     return config.make_wsgi_app()

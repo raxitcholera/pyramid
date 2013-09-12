@@ -1,6 +1,7 @@
 import os
 import sys
 import transaction
+import hashlib
 
 from sqlalchemy import engine_from_config
 
@@ -16,6 +17,7 @@ from ..models import (
     Base,
     )
 
+salt ='testsaltstringwouldbeplacedhere'
 
 def usage(argv):
     cmd = os.path.basename(argv[0])
@@ -35,6 +37,6 @@ def main(argv=sys.argv):
     Base.metadata.create_all(engine)
     with transaction.manager:
         model = MyModel(name='one', value=1)
-        user = Users(name='Raxit',password='Test_Raxit',group="editor")
+        user = Users(name='Raxit',password=hashlib.sha224('Test_Raxit' + salt ).hexdigest(),group="editor")
         DBSession.add(model)
         DBSession.add(user)

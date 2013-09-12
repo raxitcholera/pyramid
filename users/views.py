@@ -1,5 +1,6 @@
 import re
 from docutils.core import publish_parts
+import hashlib
 
 from pyramid.httpexceptions import(
     HTTPFound,
@@ -29,6 +30,12 @@ from pyramid.security import (
     authenticated_userid,
     )
 
+def set_password(password):
+    hashed_password = password
+    salt ='testsaltstringwouldbeplacedhere'
+    hashed_password=hashlib.sha224(password + salt ).hexdigest()
+    return hashed_password
+
 
 @view_config(route_name='list', renderer='list.mako',permission='view')
 def list_view(request):
@@ -43,7 +50,8 @@ def list_view(request):
 def new_view(request):
     if request.method == 'POST':
         if request.POST.get('UserName') and request.POST.get('Password'):
-            newUserObj = Users(name=request.POST.get('UserName'),password=request.POST.get('Password'),group='viewer')
+            passw=set_password(request.POST.get('Password'))
+            newUserObj = Users(name=request.POST.get('UserName'),password=passw,group='viewer')
             
             DBSession.add(newUserObj)
 
@@ -59,14 +67,17 @@ def new_view(request):
 def login_view(request):
     if request.method == 'POST':
         if request.POST.get('UserName') and request.POST.get('Password'):
-            usr=DBSession.query(Users).filter_by(name=request.POST['UserName'],password=request.POST['Password']).first()
+            passw=set_password(request.POST.get('Password'))
+            usr=DBSession.query(Users).filter_by(name=request.POST['UserName'],password=passw).first()
             if usr:
                 request.session.flash('Welcome!')
 
                 headers = remember(request,usr.group)
                 response = Response()
                 #   response.userid=usr
-                #response.set_cookie('user', value = request,POST.get('UserName') , max_age = 30)
+                response.set_cookie('group', value = usr.group , max_age = 3000)
+                response.set_cookie('logged_in', value = 'yes' , max_age = 3000)
+                
                 return HTTPFound(location=request.route_url('list'),headers=headers)
             else:
                 request.session.flash('Please enter a valid User Name or Password!')
@@ -75,6 +86,15 @@ def login_view(request):
             request.session.flash('Please enter a User Name or Password!')
             return HTTPFound(location=request.route_url('login'))
     return {}
+
+@view_config(route_name='cooky_check', renderer='coky_check.mako')
+def cooky_check(request):
+    if 'logged_in' in request.session:
+        data_exists = 'yes'
+    else:
+        data_exists ='no'  
+    return {'data_exists' : data_exists}
+
 
 @view_config(context='pyramid.exceptions.NotFound', renderer='notfound.mako')
 def notfound_view(request):
