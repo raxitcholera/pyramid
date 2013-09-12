@@ -4,11 +4,9 @@ users README
 Getting Started
 ---------------
 
-- cd <directory containing this file>
+- After cloning the repo do the following
 
-- $venv/bin/python setup.py develop
+- cd to the users directory
 
-- $venv/bin/initialize_users_db development.ini
-
-- $venv/bin/pserve development.ini
+- $pserve development.ini --reload
 
