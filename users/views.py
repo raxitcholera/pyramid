@@ -65,12 +65,16 @@ def new_view(request):
 @view_config(route_name='login', renderer='login.mako')
 @forbidden_view_config(renderer='login.mako')
 def login_view(request):
-    if request.method == 'POST':
+    if request.method == 'POST' or 'logged_in' in request.session:
         if request.POST.get('UserName') and request.POST.get('Password'):
             passw=set_password(request.POST.get('Password'))
             usr=DBSession.query(Users).filter_by(name=request.POST['UserName'],password=passw).first()
             if usr:
                 request.session.flash('Welcome!')
+                
+                request.session['logged_in']='yes'
+                request.session['logged_in_id']=usr.id
+                request.session['logged_in_group']=usr.group
 
                 headers = remember(request,usr.group)
                 response = Response()
@@ -82,6 +86,14 @@ def login_view(request):
             else:
                 request.session.flash('Please enter a valid User Name or Password!')
                 return HTTPFound(location=request.route_url('login'))
+        elif 'logged_in' in request.session and 'logged_in_id' in request.session and 'logged_in_group' in request.session:
+            headers = remember(request,request.session['logged_in_group'])
+            response = Response()
+            response.set_cookie('group', value = request.session['logged_in_group'] , max_age = 3000)
+            response.set_cookie('logged_in', value = 'yes' , max_age = 3000)
+            request.session.flash('Welcome Back !')    
+            return HTTPFound(location=request.route_url('list'),headers=headers)
+
         else:
             request.session.flash('Please enter a User Name or Password!')
             return HTTPFound(location=request.route_url('login'))
@@ -104,6 +116,9 @@ def notfound_view(request):
 @view_config(route_name='logout')
 def logout(request):
     headers = forget(request)
+    response = Response()
+    request.session.invalidate()
+    
     return HTTPFound(location = request.route_url('login'),
                      headers = headers)
  
