@@ -20,9 +20,9 @@
   <li class="last">
     <a href="${request.route_url('new')}">Add a new User</a>
   </li>
-  %if logged_in:
+  
     <span>
               <a href="${request.application_url}/logout">Logout</a>
     </span>
-  %endif
+
 </ul>
