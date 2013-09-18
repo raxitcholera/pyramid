@@ -12,11 +12,13 @@ from pyramid.response import Response
 from .security import USERS
 
 from sqlalchemy.exc import DBAPIError
+from datetime import *
 
 from .models import (
     DBSession,
     MyModel,
     Users,
+    Login_Session,
     )
 
 from pyramid.view import (
@@ -35,6 +37,16 @@ def set_password(password):
     salt ='testsaltstringwouldbeplacedhere'
     hashed_password=hashlib.sha224(password + salt ).hexdigest()
     return hashed_password
+
+def check_session(sessionid):
+    return_var = DBSession.query(Login_Session).filter_by(id=sessionid).first()
+    allowed_time = datetime.strptime(return_var.timeout, "%Y-%m-%d %H:%M:%S.%f")
+
+    if allowed_time > datetime.now():
+        return True
+    else:
+        return False
+
 
 
 @view_config(route_name='list', renderer='list.mako',permission='view')
@@ -65,7 +77,7 @@ def new_view(request):
 @view_config(route_name='login', renderer='login.mako')
 @forbidden_view_config(renderer='login.mako')
 def login_view(request):
-    if request.method == 'POST' or 'logged_in' in request.session:
+    if request.method == 'POST' or 'logged_session_id' in request.session:
         if request.POST.get('UserName') and request.POST.get('Password'):
             passw=set_password(request.POST.get('Password'))
             usr=DBSession.query(Users).filter_by(name=request.POST['UserName'],password=passw).first()
@@ -73,27 +85,26 @@ def login_view(request):
                 request.session.flash('Welcome!')
                 
                 request.session['logged_in']='yes'
-                request.session['logged_in_id']=usr.id
-                request.session['logged_in_group']=usr.group
-
-                headers = remember(request,usr.group)
-                response = Response()
-                #   response.userid=usr
-                response.set_cookie('group', value = usr.group , max_age = 3000)
-                response.set_cookie('logged_in', value = 'yes' , max_age = 3000)
+                #request.session['logged_in_id']=usr.id
+                #request.session['logged_in_group']=usr.group
                 
+                
+                Sessiontimeoutime=datetime.now() + timedelta(minutes = 10)
+                newSessionObj = Login_Session(userid=usr.id,group=usr.group,timeout=Sessiontimeoutime)
+                DBSession.add(newSessionObj)
+                
+                log=DBSession.query(Login_Session).filter_by(userid=usr.id).order_by(Login_Session.id.desc()).first()
+                request.session['logged_session_id']=log.id
+                headers = remember(request,usr.group)
                 return HTTPFound(location=request.route_url('list'),headers=headers)
             else:
                 request.session.flash('Please enter a valid User Name or Password!')
                 return HTTPFound(location=request.route_url('login'))
-        elif 'logged_in' in request.session and 'logged_in_id' in request.session and 'logged_in_group' in request.session:
-            headers = remember(request,request.session['logged_in_group'])
-            response = Response()
-            response.set_cookie('group', value = request.session['logged_in_group'] , max_age = 3000)
-            response.set_cookie('logged_in', value = 'yes' , max_age = 3000)
+        elif 'logged_session_id' in request.session and check_session(request.session['logged_session_id']): 
+            session_login =DBSession.query(Login_Session).filter_by(id=request.session['logged_session_id'])
+            headers = remember(request,session_login.group)
             request.session.flash('Welcome Back !')    
             return HTTPFound(location=request.route_url('list'),headers=headers)
-
         else:
             request.session.flash('Please enter a User Name or Password!')
             return HTTPFound(location=request.route_url('login'))
@@ -101,8 +112,8 @@ def login_view(request):
 
 @view_config(route_name='cooky_check', renderer='coky_check.mako')
 def cooky_check(request):
-    if 'logged_in' in request.session:
-        data_exists = 'yes'
+    if 'logged_session_id' in request.session and check_session(request.session['logged_session_id']):
+        data_exists = request.session['logged_session_id']
     else:
         data_exists ='no'  
     return {'data_exists' : data_exists}

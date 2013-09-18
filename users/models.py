@@ -45,6 +45,18 @@ class Users(Base):
         self.password = password
         self.group = group
 
+class Login_Session(Base):    
+    __tablename__ = 'login_session'
+    id = Column(Integer, primary_key=True)
+    userid = Column(Integer)
+    timeout = Column(Text)
+    group = Column(Text)
+
+    def __init__(self, userid, timeout,group):
+        self.userid = userid
+        self.timeout = timeout
+        self.group = group
+
 class RootFactory(object):
     __acl__ = [ (Allow, Everyone, 'view'),
                 (Allow, 'group:editors', 'edit') ]
